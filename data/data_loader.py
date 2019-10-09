@@ -146,6 +146,7 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         :param normalize: Apply standard mean and deviation normalization to audio tensor
         :param augment(default False):  Apply random tempo and gain perturbations
         """
+        manifest_filepath = "/media/data/Soroush_data/CVSpeech/" + manifest_filepath
         with open(manifest_filepath) as f:
             ids = f.readlines()
         ids = [x.strip().split(',') for x in ids]

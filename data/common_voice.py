@@ -5,7 +5,10 @@ import argparse
 import csv
 from multiprocessing.pool import ThreadPool
 import subprocess
-from utils import create_manifest
+from data.utils import create_manifest
+import warnings
+
+warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser(description='Downloads and processes Mozilla Common Voice dataset.')
 parser.add_argument("--target-dir", default='CommonVoice_dataset/', type=str, help="Directory to store the dataset.")
@@ -57,6 +60,9 @@ def convert_to_wav(csv_file, target_dir):
 
 def main():
     target_dir = args.target_dir
+    target_dir = '/media/data/Soroush_data/CVSpeech' + target_dir
+    output_final_dir = '/media/data/Soroush_data/CVSpeech/data/'
+    print(target_dir)
     os.makedirs(target_dir, exist_ok=True)
 
     target_unpacked_dir = os.path.join(target_dir, "CV_unpacked")
@@ -64,9 +70,10 @@ def main():
 
     if args.tar_path and os.path.exists(args.tar_path):
         print('Find existing file {}'.format(args.tar_path))
-        target_file = args.tar_path
+        target_file = os.getcwd() + '/PycharmProjects/deepspeech.pytorch/' + args.tar_path
     else:
         print("Could not find downloaded Common Voice archive, Downloading corpus...")
+        print(target_dir)
         filename = wget.download(COMMON_VOICE_URL, target_dir)
         target_file = os.path.join(target_dir, os.path.basename(filename))
 
@@ -76,13 +83,14 @@ def main():
     tar.close()
 
     for csv_file in args.files_to_process.split(','):
+        print(csv_file)
         convert_to_wav(os.path.join(target_unpacked_dir, 'cv_corpus_v1/', csv_file),
                        os.path.join(target_dir, os.path.splitext(csv_file)[0]))
 
     print('Creating manifests...')
     for csv_file in args.files_to_process.split(','):
         create_manifest(os.path.join(target_dir, os.path.splitext(csv_file)[0]),
-                        os.path.splitext(csv_file)[0] + '_manifest.csv',
+                        os.path.join(output_final_dir, os.path.splitext(csv_file)[0]) + '_manifest.csv',
                         args.min_duration,
                         args.max_duration)
 

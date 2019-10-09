@@ -5,7 +5,7 @@ import argparse
 import subprocess
 import unicodedata
 import io
-from utils import create_manifest
+from data.utils import create_manifest
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description='Processes and downloads TED-LIUMv2 dataset.')

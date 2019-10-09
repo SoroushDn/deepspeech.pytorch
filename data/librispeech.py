@@ -3,7 +3,7 @@ import wget
 import tarfile
 import argparse
 import subprocess
-from utils import create_manifest
+from data.utils import create_manifest
 from tqdm import tqdm
 import shutil
 

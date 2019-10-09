@@ -8,8 +8,9 @@ import numpy as np
 import torch.distributed as dist
 import torch.utils.data.distributed
 from apex import amp
-from apex.parallel import DistributedDataParallel
+#from apex.parallel import DistributedDataParallel
 from warpctc_pytorch import CTCLoss
+
 
 from data.data_loader import AudioDataLoader, SpectrogramDataset, BucketingSampler, DistributedBucketingSampler
 from decoder import GreedyDecoder
@@ -20,9 +21,9 @@ from utils import reduce_tensor, check_loss
 
 parser = argparse.ArgumentParser(description='DeepSpeech training')
 parser.add_argument('--train-manifest', metavar='DIR',
-                    help='path to train manifest csv', default='data/train_manifest.csv')
+                    help='path to train manifest csv', default='data/cv_train_manifest.csv')
 parser.add_argument('--val-manifest', metavar='DIR',
-                    help='path to validation manifest csv', default='data/val_manifest.csv')
+                    help='path to validation manifest csv', default='data/cv_dev_manifest.csv')
 parser.add_argument('--sample-rate', default=16000, type=int, help='Sample rate')
 parser.add_argument('--batch-size', default=20, type=int, help='Batch size for training')
 parser.add_argument('--num-workers', default=4, type=int, help='Number of workers used in data-loading')
@@ -84,7 +85,6 @@ parser.add_argument('--loss-scale', type=str, default=None)
 torch.manual_seed(123456)
 torch.cuda.manual_seed_all(123456)
 
-
 def to_np(x):
     return x.cpu().numpy()
 
@@ -118,7 +118,7 @@ if __name__ == '__main__':
     random.seed(args.seed)
 
     device = torch.device("cuda" if args.cuda else "cpu")
-    args.distributed = args.world_size > 1
+    args.distributed = False#args.world_size > 1
     main_proc = True
     device = torch.device("cuda" if args.cuda else "cpu")
     if args.distributed:
@@ -163,7 +163,8 @@ if __name__ == '__main__':
             if main_proc and args.tensorboard:  # Previous scores to tensorboard logs
                 tensorboard_logger.load_previous_values(start_epoch, package)
     else:
-        with open(args.labels_path) as label_file:
+        #print(args.labels_path)
+        with open("/home/soroush/PycharmProjects/deepspeech.pytorch/labels.json") as label_file:
             labels = str(''.join(json.load(label_file)))
 
         audio_conf = dict(sample_rate=args.sample_rate,
@@ -209,12 +210,12 @@ if __name__ == '__main__':
     if optim_state is not None:
         optimizer.load_state_dict(optim_state)
 
-    model, optimizer = amp.initialize(model, optimizer,
-                                      opt_level=args.opt_level,
-                                      keep_batchnorm_fp32=args.keep_batchnorm_fp32,
-                                      loss_scale=args.loss_scale)
-    if args.distributed:
-        model = DistributedDataParallel(model)
+    #model, optimizer = amp.initialize(model, optimizer,
+    #                                   opt_level=args.opt_level,
+    #                                   keep_batchnorm_fp32=args.keep_batchnorm_fp32,
+    #                                   loss_scale=args.loss_scale)
+    #if args.distributed:
+    #    model = DistributedDataParallel(model)
     print(model)
     print("Number of parameters: %d" % DeepSpeech.get_param_size(model))
 
@@ -228,6 +229,8 @@ if __name__ == '__main__':
         end = time.time()
         start_epoch_time = time.time()
         for i, (data) in enumerate(train_loader, start=start_iter):
+            #if i > 0:
+            #    break
             if i == len(train_sampler):
                 break
             inputs, targets, input_percentages, target_sizes = data
@@ -255,8 +258,8 @@ if __name__ == '__main__':
                 optimizer.zero_grad()
                 # compute gradient
 
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
+                #with amp.scale_loss(loss, optimizer) as scaled_loss:
+                loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_norm)
                 optimizer.step()
             else:
@@ -340,6 +343,6 @@ if __name__ == '__main__':
             best_wer = wer
             avg_loss = 0
 
-        if not args.no_shuffle:
-            print("Shuffling batches...")
-            train_sampler.shuffle(epoch)
+        #if not args.no_shuffle:
+        #    print("Shuffling batches...")
+        #    train_sampler.shuffle(epoch)
